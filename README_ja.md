@@ -4,30 +4,30 @@
 [![pub package](https://img.shields.io/pub/v/line_webhook.svg)](https://pub.dartlang.org/packages/line_webhook)
 [![GitHub Stars](https://img.shields.io/github/stars/normidar/line_webhook.svg)](https://github.com/normidar/line_webhook/stargazers)
 
-A Dart package for handling LINE Messaging API Webhooks.
+LINE Messaging API の Webhook を Dart で処理するためのパッケージです。
 
-[日本語](README_ja.md)
+[English](README.md)
 
-## Features
+## 機能
 
-- Parse Webhook request bodies from JSON
-- Verify `X-Line-Signature` headers (HMAC-SHA256)
-- Full coverage of all Webhook event types via sealed classes with exhaustive pattern matching
+- Webhook リクエストボディの JSON パース
+- `X-Line-Signature` ヘッダーによる署名検証 (HMAC-SHA256)
+- 全 Webhook イベント型に対応 (sealed class によるパターンマッチ)
 
-## Installation
+## インストール
 
-Add to your `pubspec.yaml`:
+`pubspec.yaml` に追加してください：
 
 ```yaml
 dependencies:
   line_webhook: ^0.1.0
 ```
 
-## Usage
+## 使い方
 
-### Signature verification
+### 署名の検証
 
-**Always verify the signature** to reject requests not originating from the LINE platform.
+LINE プラットフォーム以外からの不正なリクエストを弾くため、**必ず署名を検証してください**。
 
 ```dart
 import 'package:line_webhook/line_webhook.dart';
@@ -35,12 +35,12 @@ import 'package:line_webhook/line_webhook.dart';
 bool handleRequest(String body, String signatureHeader) {
   final isValid = verifyWebhookSignature(
     channelSecret: 'YOUR_CHANNEL_SECRET',
-    body: body,               // raw request body string
-    signature: signatureHeader, // value of X-Line-Signature header
+    body: body,               // リクエストボディの生文字列
+    signature: signatureHeader, // X-Line-Signature ヘッダーの値
   );
 
   if (!isValid) {
-    // treat as unauthorized, e.g. return 403
+    // 403 を返すなど不正リクエストとして処理する
     return false;
   }
 
@@ -49,7 +49,7 @@ bool handleRequest(String body, String signatureHeader) {
 }
 ```
 
-### Parsing the request body
+### リクエストボディのパース
 
 ```dart
 import 'dart:convert';
@@ -67,9 +67,9 @@ void handleWebhook(String rawBody) {
 }
 ```
 
-### Handling events
+### イベントの処理
 
-`WebhookEvent` is a sealed class, so `switch` expressions are exhaustively checked at compile time.
+`WebhookEvent` は sealed class なので、`switch` 式でコンパイル時に網羅性が保証されます。
 
 ```dart
 void handleEvent(WebhookEvent event) {
@@ -77,79 +77,79 @@ void handleEvent(WebhookEvent event) {
     case MessageEvent():
       handleMessage(event);
     case FollowEvent():
-      print('Followed by: ${(event.source as UserSource).userId}');
+      print('フォローされました: ${(event.source as UserSource).userId}');
     case UnfollowEvent():
-      print('Blocked');
+      print('ブロックされました');
     case JoinEvent():
-      print('Added to group/room');
+      print('グループに追加されました');
     case LeaveEvent():
-      print('Removed from group/room');
+      print('グループから削除されました');
     case PostbackEvent():
-      print('Postback: ${event.postback.data}');
+      print('ポストバック: ${event.postback.data}');
     case MemberJoinedEvent():
-      print('Member joined');
+      print('メンバーが参加しました');
     case MemberLeftEvent():
-      print('Member left');
+      print('メンバーが退出しました');
     case UnsendEvent():
-      print('Message unsent: ${event.unsend.messageId}');
+      print('メッセージが取り消されました: ${event.unsend.messageId}');
     case VideoPlayCompleteEvent():
-      print('Video viewed: ${event.videoPlayComplete.trackingId}');
+      print('動画視聴完了: ${event.videoPlayComplete.trackingId}');
     case BeaconEvent():
-      print('Beacon: ${event.beacon.hwid}');
+      print('ビーコン: ${event.beacon.hwid}');
   }
 }
 ```
 
-### Handling messages
+### メッセージの処理
 
-`Message` is also a sealed class.
+`Message` も sealed class です。
 
 ```dart
 void handleMessage(MessageEvent event) {
   switch (event.message) {
     case TextMessage(:final text):
-      print('Text: $text');
+      print('テキスト: $text');
     case ImageMessage():
-      print('Image (ID: ${event.message.id})');
+      print('画像 (ID: ${event.message.id})');
     case VideoMessage(:final duration):
-      print('Video (${duration}ms)');
+      print('動画 (${duration}ms)');
     case AudioMessage(:final duration):
-      print('Audio (${duration}ms)');
+      print('音声 (${duration}ms)');
     case FileMessage(:final fileName, :final fileSize):
-      print('File: $fileName ($fileSize bytes)');
+      print('ファイル: $fileName ($fileSize bytes)');
     case LocationMessage(:final latitude, :final longitude):
-      print('Location: $latitude, $longitude');
+      print('位置情報: $latitude, $longitude');
     case StickerMessage(:final packageId, :final stickerId):
-      print('Sticker: $packageId / $stickerId');
+      print('スタンプ: $packageId / $stickerId');
   }
 }
 ```
 
-### Checking the event source
+### 送信元の判定
 
 ```dart
 void checkSource(WebhookEvent event) {
   switch (event.source) {
     case UserSource(:final userId):
-      print('1-on-1 chat: $userId');
+      print('1対1トーク: $userId');
     case GroupSource(:final groupId, :final userId):
-      print('Group: $groupId (user: $userId)');
+      print('グループ: $groupId (user: $userId)');
     case RoomSource(:final roomId, :final userId):
-      print('Room: $roomId (user: $userId)');
+      print('複数人トーク: $roomId (user: $userId)');
   }
 }
 ```
 
-### Detecting redelivered Webhooks
+### 再送 Webhook の検出
 
 ```dart
 if (event.deliveryContext.isRedelivery) {
-  // Use webhookEventId for idempotency checks to avoid duplicate processing
-  print('Redelivered event: ${event.webhookEventId}');
+  // 重複処理を避けるため webhookEventId で冪等性チェックを行う
+  print('再送イベント: ${event.webhookEventId}');
 }
 ```
 
-### Complete example with shelf
+### shelf を使った完全な例
 
 ```dart
 import 'dart:convert';
@@ -182,6 +182,7 @@ Future<Response> _handler(Request request) async {
   );
 
   for (final event in webhookBody.events) {
+    // イベントを処理する
     handleEvent(event);
   }
 
@@ -190,26 +191,26 @@ Future<Response> _handler(Request request) async {
 
 void main() async {
   await io.serve(app, 'localhost', 8080);
-  print('Server running at http://localhost:8080');
+  print('サーバー起動: http://localhost:8080');
 }
 ```
 
-## Supported events
+## 対応イベント
 
-| Event | Class |
+| イベント | クラス |
 |---|---|
-| Message | `MessageEvent` |
-| Unsend | `UnsendEvent` |
-| Follow | `FollowEvent` |
-| Unfollow (block) | `UnfollowEvent` |
-| Join | `JoinEvent` |
-| Leave | `LeaveEvent` |
-| Member joined | `MemberJoinedEvent` |
-| Member left | `MemberLeftEvent` |
-| Postback | `PostbackEvent` |
-| Video play complete | `VideoPlayCompleteEvent` |
-| Beacon | `BeaconEvent` |
+| メッセージ | `MessageEvent` |
+| 送信取消 | `UnsendEvent` |
+| フォロー | `FollowEvent` |
+| フォロー解除 (ブロック) | `UnfollowEvent` |
+| 参加 | `JoinEvent` |
+| 退出 | `LeaveEvent` |
+| メンバー参加 | `MemberJoinedEvent` |
+| メンバー退出 | `MemberLeftEvent` |
+| ポストバック | `PostbackEvent` |
+| 動画視聴完了 | `VideoPlayCompleteEvent` |
+| ビーコン | `BeaconEvent` |
 
-## Supported message types
+## 対応メッセージ型
 
 `TextMessage` / `ImageMessage` / `VideoMessage` / `AudioMessage` / `FileMessage` / `LocationMessage` / `StickerMessage`
